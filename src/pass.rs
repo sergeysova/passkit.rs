@@ -577,13 +577,12 @@ mod test {
             .logo_text("Skyport Airways")
             .foreground_color("rgb(22, 55, 110)")
             .background_color("rgb(22, 55, 110)")
-            .add_header_field(Field {
-                label: "GATE".into(),
-                key: "gate".into(),
-                value: "23".into(),
-                change_message: Some("Gate changed to %@.".into()),
-                is_relative: false,
-            }).add_primary_field(Field::new("SAN FRANCISCO", "depart", "SFO"))
+            .add_header_field(Field::new_with_change(
+                "GATE",
+                "gate",
+                "23",
+                "Gate changed to %@.",
+            )).add_primary_field(Field::new("SAN FRANCISCO", "depart", "SFO"))
             .add_primary_field(Field::new("NEW YORK", "arrive", "JFK"))
             .add_secondary_field(Field::new("PASSENGER", "passenger", "John Appleseed"))
             .add_auxiliary_field(Field::new_with_change(

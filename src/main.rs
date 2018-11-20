@@ -3,8 +3,12 @@ extern crate serde_derive;
 extern crate serde_json;
 
 mod util;
-pub mod field;
-pub mod pass;
-pub mod personalization;
+mod field;
+mod pass;
+mod personalization;
+
+pub use field::*;
+pub use pass::*;
+pub use personalization::*;
 
 fn main() {}

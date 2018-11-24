@@ -13,15 +13,19 @@ pub struct Personalization {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum PersonalizationField {
+    /// PKPassPersonalizationFieldName
     #[serde(rename = "PKPassPersonalizationFieldName")]
     Name,
 
+    /// PKPassPersonalizationFieldPostalCode
     #[serde(rename = "PKPassPersonalizationFieldPostalCode")]
     PostalCode,
 
+    /// PKPassPersonalizationFieldEmailAddress
     #[serde(rename = "PKPassPersonalizationFieldEmailAddress")]
     EmailAddress,
 
+    /// PKPassPersonalizationFieldPhoneNumber
     #[serde(rename = "PKPassPersonalizationFieldPhoneNumber")]
     PhoneNumber,
 }

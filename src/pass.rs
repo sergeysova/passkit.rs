@@ -1,6 +1,6 @@
+use field::Field;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
-use field::Field;
 use util::*;
 
 /// The top level of the pass.json file is a dictionary.
@@ -194,6 +194,29 @@ pub struct Location {
     pub relevant_text: Option<String>,
 }
 
+/// From<(altitude, latitude)>
+impl From<(f64, f64)> for Location {
+    fn from((alt, lat): (f64, f64)) -> Location {
+        Location {
+            altitude: Some(alt),
+            latitude: Some(lat),
+            ..Default::default()
+        }
+    }
+}
+
+/// From<(altitude, latitude, longitude)>
+impl From<(f64, f64, f64)> for Location {
+    fn from((alt, lat, lon): (f64, f64, f64)) -> Location {
+        Location {
+            altitude: Some(alt),
+            latitude: Some(lat),
+            longitude: Some(lon),
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Style {
@@ -244,18 +267,23 @@ pub struct Structure {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TransitType {
+    /// PKTransitTypeAir
     #[serde(rename = "PKTransitTypeAir")]
     Air,
 
+    /// PKTransitTypeBoat
     #[serde(rename = "PKTransitTypeBoat")]
     Boat,
 
+    /// PKTransitTypeBus
     #[serde(rename = "PKTransitTypeBus")]
     Bus,
 
+    /// PKTransitTypeGeneric
     #[serde(rename = "PKTransitTypeGeneric")]
     Generic,
 
+    /// PKTransitTypeTrain
     #[serde(rename = "PKTransitTypeTrain")]
     Train,
 }
@@ -282,14 +310,43 @@ pub struct Barcode {
     pub alt_text: Option<String>,
 }
 
+/// From<(BardcodeFormat::Code128, "MESSAGE")>
+impl<M: Into<String>> From<(BarcodeFormat, M)> for Barcode {
+    fn from((format, message): (BarcodeFormat, M)) -> Barcode {
+        Barcode {
+            message: message.into(),
+            format,
+            ..Default::default()
+        }
+    }
+}
+
+impl Default for Barcode {
+    fn default() -> Self {
+        Barcode {
+            message: String::new(),
+            format: BarcodeFormat::Code128,
+            message_encoding: String::from("iso-8859-1"),
+            alt_text: None,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BarcodeFormat {
+    /// PKBarcodeFormatQR
     #[serde(rename = "PKBarcodeFormatQR")]
     QR,
+
+    /// PKBarcodeFormatPDF417
     #[serde(rename = "PKBarcodeFormatPDF417")]
     PDF417,
+
+    /// PKBarcodeFormatAztec
     #[serde(rename = "PKBarcodeFormatAztec")]
     Aztec,
+
+    /// PKBarcodeFormatCode128
     #[serde(rename = "PKBarcodeFormatCode128")]
     Code128,
 }
@@ -406,8 +463,8 @@ impl PassBuilder {
         self
     }
 
-    pub fn add_location(mut self, location: Location) -> PassBuilder {
-        self.locations.push(location);
+    pub fn add_location<T: Into<Location>>(mut self, location: T) -> PassBuilder {
+        self.locations.push(location.into());
         self
     }
 
@@ -421,33 +478,33 @@ impl PassBuilder {
         self
     }
 
-    pub fn add_auxiliary_field(mut self, field: Field) -> PassBuilder {
-        self.structure.auxiliary_fields.push(field);
+    pub fn add_auxiliary_field<T: Into<Field>>(mut self, field: T) -> PassBuilder {
+        self.structure.auxiliary_fields.push(field.into());
         self
     }
 
-    pub fn add_back_field(mut self, field: Field) -> PassBuilder {
-        self.structure.back_fields.push(field);
+    pub fn add_back_field<T: Into<Field>>(mut self, field: T) -> PassBuilder {
+        self.structure.back_fields.push(field.into());
         self
     }
 
-    pub fn add_header_field(mut self, field: Field) -> PassBuilder {
-        self.structure.header_fields.push(field);
+    pub fn add_header_field<T: Into<Field>>(mut self, field: T) -> PassBuilder {
+        self.structure.header_fields.push(field.into());
         self
     }
 
-    pub fn add_primary_field(mut self, field: Field) -> PassBuilder {
-        self.structure.primary_fields.push(field);
+    pub fn add_primary_field<T: Into<Field>>(mut self, field: T) -> PassBuilder {
+        self.structure.primary_fields.push(field.into());
         self
     }
 
-    pub fn add_secondary_field(mut self, field: Field) -> PassBuilder {
-        self.structure.auxiliary_fields.push(field);
+    pub fn add_secondary_field<T: Into<Field>>(mut self, field: T) -> PassBuilder {
+        self.structure.auxiliary_fields.push(field.into());
         self
     }
 
-    pub fn add_barcode(mut self, barcode: Barcode) -> PassBuilder {
-        self.visual.barcodes.push(barcode);
+    pub fn add_barcode<T: Into<Barcode>>(mut self, barcode: T) -> PassBuilder {
+        self.visual.barcodes.push(barcode.into());
         self
     }
 
@@ -552,6 +609,10 @@ impl PassBuilder {
     }
 }
 
+pub fn rgb(r: u8, g: u8, b: u8) -> String {
+    format!("rgba({}, {}, {})", r, g, b)
+}
+
 mod test {
     #[test]
     fn ser_pass_example() {
@@ -562,43 +623,33 @@ mod test {
                 "vxwxd7J8AlNNFPS8k0a0FfUFtq0ewzFdc",
                 "https://example.com/passes/",
             ).relevant_date("2012-07-22T14:25-08:00".into())
-            .add_location(Location {
-                longitude: Some(-122.3748889),
-                latitude: Some(37.6189722),
-                altitude: None,
-                relevant_text: None,
-            }).add_barcode(Barcode {
-                message: "SFOJFK JOHN APPLESEED LH451 2012-07-22T14:25-08:00".into(),
-                format: BarcodeFormat::PDF417,
-                message_encoding: "iso-8859-1".into(),
-                alt_text: None,
-            }).organization_name("Skyport Airways")
+            .add_location((-122.3748889, 37.6189722))
+            .add_barcode((
+                BarcodeFormat::PDF417,
+                "SFOJFK JOHN APPLESEED LH451 2012-07-22T14:25-08:00",
+            )).organization_name("Skyport Airways")
             .description("Skyport Boarding Pass")
             .logo_text("Skyport Airways")
-            .foreground_color("rgb(22, 55, 110)")
-            .background_color("rgb(22, 55, 110)")
-            .add_header_field(Field::new_with_change(
-                "GATE",
-                "gate",
-                "23",
-                "Gate changed to %@.",
-            )).add_primary_field(Field::new("SAN FRANCISCO", "depart", "SFO"))
-            .add_primary_field(Field::new("NEW YORK", "arrive", "JFK"))
-            .add_secondary_field(Field::new("PASSENGER", "passenger", "John Appleseed"))
-            .add_auxiliary_field(Field::new_with_change(
+            .foreground_color(rgb(22, 55, 110))
+            .background_color(rgb(22, 55, 110))
+            .add_header_field(Field::new("GATE", "gate", "23", "Gate changed to %@."))
+            .add_primary_field(("SAN FRANCISCO", "depart", "SFO"))
+            .add_primary_field(("NEW YORK", "arrive", "JFK"))
+            .add_secondary_field(("PASSENGER", "passenger", "John Appleseed"))
+            .add_auxiliary_field(Field::new(
                 "DEPART",
                 "boardingTime",
                 "2:25 PM",
                 "Boarding time changed to %@.",
-            )).add_auxiliary_field(Field::new_with_change(
+            )).add_auxiliary_field(Field::new(
                 "FLIGHT",
                 "flightNewName",
                 "815",
                 "Flight number changed to %@",
-            )).add_auxiliary_field(Field::new("DESIG.", "class", "Coach"))
-            .add_auxiliary_field(Field::new("DATE", "date", "7/22"))
-            .add_back_field(Field::new("PASSPORT", "passport", "Canadian/Canadien"))
-            .add_back_field(Field::new(
+            )).add_auxiliary_field(("DESIG.", "class", "Coach"))
+            .add_auxiliary_field(("DATE", "date", "7/22"))
+            .add_back_field(("PASSPORT", "passport", "Canadian/Canadien"))
+            .add_back_field((
                 "RESIDENCE",
                 "residence",
                 "999 Infinite Loop, Apartment 42, Cupertino CA",

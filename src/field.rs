@@ -7,16 +7,16 @@ use util::*;
 pub struct Field {
     /// Attributed value of the field.
     /// The value may contain HTML markup for links.
-    /// Only the <a> tag and its href attribute are supported.
+    /// Only the `<a>` tag and its href attribute are supported.
     /// For example, the following is key-value pair specifies a link with the text “Edit my profile”:
-    /// "attributedValue": "<a href='http://example.com/customers/123'>Edit my profile</a>"
+    /// `"attributedValue": "<a href='http://example.com/customers/123'>Edit my profile</a>"`
     /// This key’s value overrides the text specified by the value key.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributed_value: Option<String>,
 
     /// Format string for the alert text that is displayed when the pass is updated.
-    /// The format string must contain the escape %@, which is replaced with the field’s new value.
-    /// For example, “Gate changed to %@.”
+    /// The format string must contain the escape `%@`, which is replaced with the field’s new value.
+    /// For example, `“Gate changed to %@.”`
     /// If you don’t specify a change message, the user isn’t notified when the field changes.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub change_message: Option<String>,
@@ -28,7 +28,7 @@ pub struct Field {
     pub data_detector_types: Option<Vec<DataDetectorType>>,
 
     /// The key must be unique within the scope of the entire pass.
-    /// For example, “departure-gate.”
+    /// For example, `“departure-gate.”`
     pub key: String,
 
     /// Label text for the field.
@@ -39,7 +39,7 @@ pub struct Field {
     #[serde(skip_serializing_if = "TextAlignment::is_natural")]
     pub text_alignment: TextAlignment,
 
-    /// Value of the field, for example, 42.
+    /// Value of the field, for example, `42`.
     pub value: Value,
 
     #[serde(flatten)]
@@ -49,12 +49,52 @@ pub struct Field {
     pub number: Option<FieldNumber>,
 }
 
+impl<TKey, TLabel, TValue> From<(TKey, TLabel, TValue)> for Field
+where
+    TKey: Into<String>,
+    TLabel: Into<String>,
+    TValue: Into<Value>,
+{
+    fn from((key, label, value): (TKey, TLabel, TValue)) -> Field {
+        Field {
+            key: key.into(),
+            label: Some(label.into()),
+            value: value.into(),
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum Value {
     String(String),
     Int(i32),
     Float(f64),
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Value {
+        Value::String(value)
+    }
+}
+
+impl<'a> From<&'a str> for Value {
+    fn from(value: &str) -> Value {
+        Value::String(value.into())
+    }
+}
+
+impl From<i32> for Value {
+    fn from(value: i32) -> Value {
+        Value::Int(value)
+    }
+}
+
+impl From<f64> for Value {
+    fn from(value: f64) -> Value {
+        Value::Float(value)
+    }
 }
 
 impl Default for Value {
@@ -131,14 +171,23 @@ pub struct FieldDate {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum DateTimeStyle {
+    /// PKDateStyleNone
     #[serde(rename = "PKDateStyleNone")]
     None,
+
+    /// PKDateStyleShort
     #[serde(rename = "PKDateStyleShort")]
     Short,
+
+    /// PKDateStyleMedium
     #[serde(rename = "PKDateStyleMedium")]
     Medium,
+
+    /// PKDateStyleLong
     #[serde(rename = "PKDateStyleLong")]
     Long,
+
+    /// PKDateStyleFull
     #[serde(rename = "PKDateStyleFull")]
     Full,
 }
@@ -163,12 +212,19 @@ pub struct FieldNumber {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum NumberStyle {
+    /// PKNumberStyleDecimal
     #[serde(rename = "PKNumberStyleDecimal")]
     Decimal,
+
+    /// PKNumberStylePercent
     #[serde(rename = "PKNumberStylePercent")]
     Percent,
+
+    /// PKNumberStyleScientific
     #[serde(rename = "PKNumberStyleScientific")]
     Scientific,
+
+    /// PKNumberStyleSpellOut
     #[serde(rename = "PKNumberStyleSpellOut")]
     SpellOut,
 }
@@ -179,32 +235,20 @@ impl Default for NumberStyle {
     }
 }
 
-
 impl Field {
-    pub fn new<L, K, V>(label: L, key: K, value: V) -> Self
+    pub fn new<Label, Key, Val, Change>(label: Label, key: Key, value: Val, change: Change) -> Self
     where
-        L: Into<String>,
-        K: Into<String>,
-        V: Into<String>,
+        Label: Into<String>,
+        Key: Into<String>,
+        Val: Into<Value>,
+        Change: Into<String>,
     {
         Field {
-            label: Some(label.into()),
             key: key.into(),
-            value: Value::String(value.into()),
-            ..Default::default()
-        }
-    }
-
-    pub fn new_with_change<L, K, V, C>(label: L, key: K, value: V, change: C) -> Self
-    where
-        L: Into<String>,
-        K: Into<String>,
-        V: Into<String>,
-        C: Into<String>,
-    {
-        Field {
+            label: Some(label.into()),
+            value: value.into(),
             change_message: Some(change.into()),
-            ..Field::new(label, key, value)
+            ..Default::default()
         }
     }
 }

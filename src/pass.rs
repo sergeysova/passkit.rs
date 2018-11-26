@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use util::*;
 
 /// The top level of the pass.json file is a dictionary.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Pass {
     /// Brief description of the pass, used by the iOS accessibility technologies.
@@ -217,7 +217,7 @@ impl From<(f64, f64, f64)> for Location {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Style {
     BoardingPass(Structure),

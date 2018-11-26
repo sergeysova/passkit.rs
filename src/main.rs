@@ -1,7 +1,9 @@
 extern crate passkit;
 extern crate serde_json;
 
-use passkit::{Barcode, BarcodeFormat, Field, Location, PassBuilder, TransitType, Value};
+use passkit::{
+    Barcode, BarcodeFormat, Field, Location, PassBuilder, PassSource, TransitType, Value,
+};
 
 use std::fs;
 
@@ -20,5 +22,12 @@ fn main() {
         .add_header_field(("example", "EXAM", 22))
         .finish_boarding_pass(TransitType::Train);
 
-    println!("{}", serde_json::to_string_pretty(&pass).unwrap());
+    // println!("{}", serde_json::to_string_pretty(&pass).unwrap());
+
+    let mut source =
+        PassSource::new("/Users/sergeysova/Projects/passkit/examples/BoardingPass.pass");
+
+    source.create_pass(&pass).unwrap();
+
+    println!("{:#?}", source);
 }

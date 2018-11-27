@@ -3,6 +3,7 @@ extern crate openssl;
 extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
+extern crate tempdir;
 
 mod field;
 mod pass;
@@ -58,11 +59,12 @@ impl PassSource {
     }
 
     pub fn create_pass(&mut self, pass: &Pass) -> PassResult<()> {
-        self.manifest = self.create_manifest_hashes()?;
+
+        self.create_manifest_hashes()?;
         Ok(())
     }
 
-    fn create_manifest_hashes(&self) -> PassResult<Manifest> {
+    fn create_manifest_hashes(&self) -> PassResult<()> {
         let mut manifest = Manifest::new();
         let list =
             fs::read_dir(&self.source_directory).map_err(|_| PassCreateError::CantReadSourceDir)?;
@@ -78,7 +80,7 @@ impl PassSource {
             manifest.insert(file_name, hash);
         }
 
-        Ok(manifest)
+        Ok(())
     }
 }
 

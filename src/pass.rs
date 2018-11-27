@@ -378,7 +378,7 @@ pub struct NFC {
     pub encryption_public_key: Option<String>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct PassBuilder {
     serial_number: String,
     pass_type_identifier: String,

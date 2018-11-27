@@ -27,7 +27,8 @@ fn main() {
     let mut source =
         PassSource::new("/Users/sergeysova/Projects/passkit/examples/BoardingPass.pass");
 
-    source.create_pass(&pass).unwrap();
+    source.add_pass(pass);
+    source.build_pkpass().unwrap();
 
     println!("{:#?}", source);
 }

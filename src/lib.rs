@@ -1,9 +1,9 @@
 extern crate crypto;
 extern crate fs_extra;
 extern crate openssl;
+extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
-extern crate serde;
 extern crate tempdir;
 extern crate zip;
 
@@ -27,7 +27,7 @@ pub use personalization::*;
 // use Failure
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum PassCreateError {
-    CantReadSourceDir,
+    CantReadTempDir,
     CantReadEntry(String),
     CantParsePassFile(String),
     PassContentNotFound,
@@ -39,7 +39,7 @@ impl fmt::Display for PassCreateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use PassCreateError::*;
         let stringified = match self {
-            CantReadSourceDir => "Can't read source directory".to_string(),
+            CantReadTempDir => "Can't read temporary directory".to_string(),
             CantReadEntry(cause) => format!("Can't read {}", cause),
             CantParsePassFile(cause) => format!("pass.json invalid: {}", cause),
             PassContentNotFound => {
@@ -140,10 +140,15 @@ impl PassSource {
         Ok(())
     }
 
+    fn temp_dir_path(&self) -> &path::Path {
+        let dir = self.temp_dir.unwrap();
+        dir.path()
+    }
+
     fn calculate_hashes_for_manifest(&self) -> PassResult<()> {
         let mut manifest = Manifest::new();
-        let list =
-            fs::read_dir(&self.source_directory).map_err(|_| PassCreateError::CantReadSourceDir)?;
+        let dir = self.temp_dir.ok_or(PassCreateError::CantReadTempDir)?.path();
+        let list = fs::read_dir(&dir).map_err(|_| PassCreateError::CantReadTempDir)?;
 
         for entry in list {
             let entry = entry.map_err(|err| PassCreateError::CantReadEntry(err.to_string()))?;

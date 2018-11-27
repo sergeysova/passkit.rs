@@ -1,8 +1,9 @@
 extern crate crypto;
+extern crate fs_extra;
 extern crate openssl;
-extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
+extern crate serde;
 extern crate tempdir;
 extern crate zip;
 
@@ -17,6 +18,7 @@ use std::fmt;
 use std::fs;
 use std::io::prelude::*;
 use std::path;
+use tempdir::TempDir;
 
 pub use field::*;
 pub use pass::*;
@@ -29,6 +31,8 @@ pub enum PassCreateError {
     CantReadEntry(String),
     CantParsePassFile(String),
     PassContentNotFound,
+    CantCreateTempDir,
+    CantCopySourceToTemp,
 }
 
 impl fmt::Display for PassCreateError {
@@ -41,6 +45,8 @@ impl fmt::Display for PassCreateError {
             PassContentNotFound => {
                 "Please, provide pass.json or instance of Pass with add_pass() method".to_string()
             }
+            CantCreateTempDir => "Can't create temporary directory. Check rights".to_string(),
+            CantCopySourceToTemp => "Can't copy source files to temp directory".to_string(),
         };
         write!(f, "PassCreateError: {}", stringified)
     }
@@ -51,7 +57,7 @@ impl std::error::Error for PassCreateError {}
 type PassResult<T> = Result<T, PassCreateError>;
 type Manifest = HashMap<String, String>;
 
-/// Describes .pass directory with files
+/// Describes .pass directory with source files
 #[derive(Debug, Default)]
 pub struct PassSource {
     /// place where images contains
@@ -62,6 +68,9 @@ pub struct PassSource {
 
     /// content of the pass
     pass_content: Option<Pass>,
+
+    /// place of temporary source of zip archive
+    temp_dir: Option<TempDir>,
 }
 
 impl PassSource {
@@ -80,20 +89,16 @@ impl PassSource {
     /// Create .pkpass file in target directory
     pub fn build_pkpass(&mut self) -> PassResult<()> {
         self.resolve_pass_content()?;
+        self.copy_source_files_to_temp_dir()?;
         self.calculate_hashes_for_manifest()?;
         Ok(())
-    }
-
-    fn pass_source_file_path(&self) -> Box<path::Path> {
-        let path = path::Path::new(&self.source_directory).join("pass.json");
-        path.into_boxed_path()
     }
 
     /// Parse pass.json from source directory if Pass not provided
     fn resolve_pass_content(&mut self) -> PassResult<()> {
         if self.pass_content.is_none() {
             if self.is_pass_file_exists_in_source() {
-                self.pass_content = Some(self.read_pass_file()?);
+                self.pass_content = Some(self.read_pass_source_file()?);
             }
         }
         Ok(())
@@ -103,12 +108,36 @@ impl PassSource {
         self.pass_source_file_path().exists()
     }
 
-    fn read_pass_file(&self) -> PassResult<Pass> {
+    fn read_pass_source_file(&self) -> PassResult<Pass> {
         let content = read_file_to_vec(self.pass_source_file_path())
             .map_err(|_| PassCreateError::CantReadEntry("pass.json".to_string()))?;
         let pass: Pass = serde_json::from_slice(&content)
             .map_err(|cause| PassCreateError::CantParsePassFile(cause.to_string()))?;
         Ok(pass)
+    }
+
+    fn pass_source_file_path(&self) -> Box<path::Path> {
+        let path = path::Path::new(&self.source_directory).join("pass.json");
+        path.into_boxed_path()
+    }
+
+    fn copy_source_files_to_temp_dir(&mut self) -> PassResult<()> {
+        use fs_extra::dir::{copy, CopyOptions};
+
+        self.create_temp_dir()?;
+
+        if let Some(ref tmp_dir) = self.temp_dir {
+            copy(&self.source_directory, tmp_dir, &CopyOptions::new())
+                .map_err(|_| PassCreateError::CantCopySourceToTemp)?;
+        }
+
+        Ok(())
+    }
+
+    fn create_temp_dir(&mut self) -> PassResult<()> {
+        let tmp = TempDir::new("passsource").map_err(|_| PassCreateError::CantCreateTempDir)?;
+        self.temp_dir = Some(tmp);
+        Ok(())
     }
 
     fn calculate_hashes_for_manifest(&self) -> PassResult<()> {

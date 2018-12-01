@@ -36,6 +36,7 @@ pub enum PassCreateError {
     CantCopySourceToTemp,
     CantSerializePass,
     CantWritePassFile(String),
+    CantCalculateHashes,
 }
 
 impl fmt::Display for PassCreateError {
@@ -52,6 +53,7 @@ impl fmt::Display for PassCreateError {
             CantCopySourceToTemp => "Can't copy source files to temp directory".to_string(),
             CantSerializePass => "Can't serialize pass.json".to_string(),
             CantWritePassFile(cause) => format!("Can't write pass.json {}", cause),
+            CantCalculateHashes => "Can't calculate hashes for temp directory".to_string(),
         };
         write!(f, "PassCreateError: {}", stringified)
     }
@@ -73,9 +75,6 @@ pub struct PassSource {
 
     /// content of the pass
     pass_content: Option<Pass>,
-
-    /// place of temporary source of zip archive
-    temp_dir: Option<TempDir>,
 }
 
 impl PassSource {
@@ -147,30 +146,46 @@ impl PassSource {
     }
 
     fn copy_source_files_to(&mut self, dir: &path::Path) -> PassResult<()> {
-        use fs_extra::dir::{copy, CopyOptions};
+        fn walk(from: &path::Path, to: &path::Path) -> std::io::Result<()> {
+            for entry in fs::read_dir(&from)? {
+                // println!("{:?}", entry?);
+                let entry = entry?;
+                let entry_path = &entry.path();
+                let target = entry_path
+                    .strip_prefix(&from)
+                    .map_err(|__| std::io::Error::from(std::io::ErrorKind::Other))?;
+                fs::copy(entry.path(), to.join(target))?;
+            }
 
-        copy(&self.source_directory, dir, &CopyOptions::new())
+            Ok(())
+        }
+
+        walk(&path::Path::new(&self.source_directory), dir)
             .map_err(|_| PassCreateError::CantCopySourceToTemp)?;
 
         Ok(())
     }
 
-    fn calculate_hashes_of(&self, dir: &path::Path) -> PassResult<Manifest> {
-        let mut manifest = Manifest::new();
-        let list = fs::read_dir(&dir).map_err(|_| PassCreateError::CantReadTempDir)?;
+    fn calculate_hashes_of(&mut self, dir: &path::Path) -> PassResult<()> {
+        fn enumerate(dir: &path::Path) -> std::io::Result<Manifest> {
+            let mut manifest = Manifest::new();
 
-        for entry in list {
-            let entry = entry.map_err(|err| PassCreateError::CantReadEntry(err.to_string()))?;
-            let content = read_file_to_vec(entry.path())
-                .map_err(|err| PassCreateError::CantReadEntry(format!("{:?} {}", entry.path(), err.to_string())))?;
-            let hash = get_hash(&content);
-            let file_name = format!("{:?}", entry.file_name());
+            for entry in fs::read_dir(dir)? {
+                let entry = entry?;
+                if entry.metadata()?.is_file() {
+                    let file_name = format!("{:?}", entry.file_name());
+                    let content = read_file_to_vec(entry.path())?;
+                    let hash = get_hash(&content);
 
-            println!("— {} >> {}", file_name, hash);
-            manifest.insert(file_name, hash);
+                    manifest.insert(file_name, hash);
+                }
+            }
+
+            Ok(manifest)
         }
 
-        Ok(manifest)
+        self.manifest = enumerate(&dir).map_err(|_| PassCreateError::CantCalculateHashes)?;
+        Ok(())
     }
 }
 

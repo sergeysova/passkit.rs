@@ -162,7 +162,7 @@ impl PassSource {
         for entry in list {
             let entry = entry.map_err(|err| PassCreateError::CantReadEntry(err.to_string()))?;
             let content = read_file_to_vec(entry.path())
-                .map_err(|err| PassCreateError::CantReadEntry(err.to_string()))?;
+                .map_err(|err| PassCreateError::CantReadEntry(format!("{:?} {}", entry.path(), err.to_string())))?;
             let hash = get_hash(&content);
             let file_name = format!("{:?}", entry.file_name());
 

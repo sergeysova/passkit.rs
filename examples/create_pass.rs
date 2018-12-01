@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 extern crate passkit;
 extern crate serde_json;
 
@@ -5,6 +7,7 @@ use passkit::{
     Barcode, BarcodeFormat, Field, Location, PassBuilder, PassSource, TransitType, Value,
 };
 
+use std::error::Error;
 use std::fs;
 
 fn main() {
@@ -25,10 +28,12 @@ fn main() {
     // println!("{}", serde_json::to_string_pretty(&pass).unwrap());
 
     let mut source =
-        PassSource::new("/Users/sergeysova/Projects/passkit/examples/BoardingPass.pass");
+        PassSource::new("/Users/sergeysova/Projects/passkit/examples/BoardingPass.pass/");
 
     source.add_pass(pass);
-    source.build_pkpass().unwrap();
+    if let Err(error) = source.build_pkpass() {
+        panic!("Example failed: {}", error);
+    }
 
     println!("{:#?}", source);
 }

@@ -37,6 +37,7 @@ pub enum PassCreateError {
     CantSerializePass,
     CantWritePassFile(String),
     CantCalculateHashes,
+    CantCreateManifestFile,
 }
 
 impl fmt::Display for PassCreateError {
@@ -54,6 +55,7 @@ impl fmt::Display for PassCreateError {
             CantSerializePass => "Can't serialize pass.json".to_string(),
             CantWritePassFile(cause) => format!("Can't write pass.json {}", cause),
             CantCalculateHashes => "Can't calculate hashes for temp directory".to_string(),
+            CantCreateManifestFile => "Can't create manifest file at temp directory".to_string(),
         };
         write!(f, "PassCreateError: {}", stringified)
     }
@@ -99,6 +101,7 @@ impl PassSource {
         self.copy_source_files_to(tmp.path())?;
         self.write_pass_file_to(tmp.path())?;
         self.calculate_hashes_of(tmp.path())?;
+        self.write_manifest_to(tmp.path())?;
         Ok(())
     }
 
@@ -186,6 +189,18 @@ impl PassSource {
 
         self.manifest = enumerate(&dir).map_err(|_| PassCreateError::CantCalculateHashes)?;
         Ok(())
+    }
+
+    fn write_manifest_to(&self, dir: &path::Path) -> PassResult<()> {
+        fn produce(target: &path::Path, manifest: &Manifest) -> std::io::Result<()> {
+            let file_path = target.join("manifest.json");
+            let content = serde_json::to_vec_pretty(&manifest)
+                .map_err(|_| std::io::Error::from(std::io::ErrorKind::Other))?;
+            fs::write(file_path, content)?;
+            Ok(())
+        }
+
+        produce(dir, &self.manifest).map_err(|_| PassCreateError::CantCreateManifestFile)
     }
 }
 

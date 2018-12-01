@@ -1,13 +1,13 @@
 [package]
 authors = ["Sergey Sova <mail@sergeysova.com>"]
-categories = ["command-line-interface", "cryptography", "development-tools", "encoding", "os::macos-apis", ""]
+categories = ["command-line-interface", "cryptography", "development-tools", "encoding", "os::macos-apis"]
 description = "Apple PassKit library to manage passes"
 documentation = "https://docs.rs/crate/passkit"
 license = "MIT"
 name = "passkit"
 readme = "README.md"
 repository = "https://github.com/sergeysova/passkit.rs"
-version = "0.0.5"
+version = "0.0.6"
 
 [dependencies]
 fs_extra = "1.1.0"

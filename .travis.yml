@@ -4,12 +4,12 @@ matrix:
   allow_failures:
     - rust: nightly
   include:
-    - os: linux
-      rust: stable
-    - os: linux
-      rust: beta
-    - os: linux
-      rust: nightly
+    # - os: linux
+    #   rust: stable
+    # - os: linux
+    #   rust: beta
+    # - os: linux
+    #   rust: nightly
     - os: osx
       rust: stable
     - os: osx

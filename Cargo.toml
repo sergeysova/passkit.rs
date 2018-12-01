@@ -1,23 +1,25 @@
 [package]
-name = "passkit"
-version = "0.0.4"
 authors = ["Sergey Sova <mail@sergeysova.com>"]
+categories = ["command-line-interface", "cryptography", "development-tools", "encoding", "os::macos-apis", ""]
 description = "Apple PassKit library to manage passes"
-license = "MIT"
-repository = "https://github.com/sergeysova/passkit.rs"
 documentation = "https://docs.rs/crate/passkit"
+license = "MIT"
+name = "passkit"
+readme = "README.md"
+repository = "https://github.com/sergeysova/passkit.rs"
+version = "0.0.4"
 
 [dependencies]
-serde = "1.0.80"
-serde_json = "1.0.33"
-serde_derive = "1.0.80"
-rust-crypto = "0.2.36"
+fs_extra = "1.1.0"
 openssl = "0.10.15"
+rust-crypto = "0.2.36"
+serde = "1.0.80"
+serde_derive = "1.0.80"
+serde_json = "1.0.33"
 tempdir = "0.3.7"
 zip = "0.5.0"
-fs_extra = "1.1.0"
 
 [badges]
-travis-ci = { repository = "sergeysova/passkit.rs", branch = "master" }
 codecov = { repository = "sergeysova/passkit.rs" }
 maintenance = { status = "actively-developed" }
+travis-ci = { repository = "sergeysova/passkit.rs", branch = "master" }

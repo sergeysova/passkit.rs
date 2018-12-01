@@ -1,9 +1,9 @@
 extern crate crypto;
 extern crate fs_extra;
 extern crate openssl;
-extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
+extern crate serde;
 extern crate tempdir;
 extern crate zip;
 
@@ -33,6 +33,7 @@ pub enum PassCreateError {
     PassContentNotFound,
     CantCreateTempDir,
     CantCopySourceToTemp,
+    CantSerializePass
 }
 
 impl fmt::Display for PassCreateError {
@@ -101,7 +102,7 @@ impl PassSource {
     fn resolve_pass_content(&mut self) -> PassResult<()> {
         if self.pass_content.is_none() {
             if self.is_pass_file_exists_in_source() {
-                self.pass_content = Some(self.read_pass_source_file()?);
+                self.pass_content = Some(self.read_pass_file_from_source()?);
             }
         }
         Ok(())
@@ -111,7 +112,7 @@ impl PassSource {
         self.pass_source_file_path().exists()
     }
 
-    fn read_pass_source_file(&self) -> PassResult<Pass> {
+    fn read_pass_file_from_source(&self) -> PassResult<Pass> {
         let content = read_file_to_vec(self.pass_source_file_path())
             .map_err(|_| PassCreateError::CantReadEntry("pass.json".to_string()))?;
         let pass: Pass = serde_json::from_slice(&content)
@@ -126,6 +127,14 @@ impl PassSource {
 
     fn create_tmp_dir() -> PassResult<TempDir> {
         TempDir::new("passsource").map_err(|_| PassCreateError::CantCreateTempDir)
+    }
+
+    fn write_pass_file_to(&self, dir: &path::Path) -> PassResult<()> {
+        if let Some(pass) = &self.pass_content {
+            let serialized = serde_json::to_string_pretty(&pass)
+                .map_err(|err|)?;
+        }
+        Ok(())
     }
 
     fn copy_source_files_to(&mut self, dir: &path::Path) -> PassResult<()> {

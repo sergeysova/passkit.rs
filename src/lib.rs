@@ -105,10 +105,8 @@ impl PassSource {
 
     /// Parse pass.json from source directory if Pass not provided
     fn resolve_pass_content(&mut self) -> PassResult<()> {
-        if self.pass_content.is_none() {
-            if self.is_pass_file_exists_in_source() {
-                self.pass_content = Some(self.read_pass_file_from_source()?);
-            }
+        if self.pass_content.is_none() && self.is_pass_file_exists_in_source() {
+            self.pass_content = Some(self.read_pass_file_from_source()?);
         }
         Ok(())
     }

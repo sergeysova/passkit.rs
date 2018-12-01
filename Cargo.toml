@@ -11,6 +11,7 @@ version = "0.0.5"
 
 [dependencies]
 fs_extra = "1.1.0"
+keychain-services = "0.1.0"
 openssl = "0.10.15"
 rust-crypto = "0.2.36"
 serde = "1.0.80"

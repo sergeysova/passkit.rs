@@ -1,9 +1,10 @@
 extern crate crypto;
 extern crate fs_extra;
+extern crate keychain_services;
 extern crate openssl;
+extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
-extern crate serde;
 extern crate tempdir;
 extern crate zip;
 
@@ -33,7 +34,8 @@ pub enum PassCreateError {
     PassContentNotFound,
     CantCreateTempDir,
     CantCopySourceToTemp,
-    CantSerializePass
+    CantSerializePass,
+    CantWritePassFile(String),
 }
 
 impl fmt::Display for PassCreateError {
@@ -48,6 +50,8 @@ impl fmt::Display for PassCreateError {
             }
             CantCreateTempDir => "Can't create temporary directory. Check rights".to_string(),
             CantCopySourceToTemp => "Can't copy source files to temp directory".to_string(),
+            CantSerializePass => "Can't serialize pass.json".to_string(),
+            CantWritePassFile(cause) => format!("Can't write pass.json {}", cause),
         };
         write!(f, "PassCreateError: {}", stringified)
     }
@@ -94,6 +98,7 @@ impl PassSource {
         let tmp = Self::create_tmp_dir()?;
 
         self.copy_source_files_to(tmp.path())?;
+        self.write_pass_file_to(tmp.path())?;
         self.calculate_hashes_of(tmp.path())?;
         Ok(())
     }
@@ -130,9 +135,15 @@ impl PassSource {
     }
 
     fn write_pass_file_to(&self, dir: &path::Path) -> PassResult<()> {
-        if let Some(pass) = &self.pass_content {
-            let serialized = serde_json::to_string_pretty(&pass)
-                .map_err(|err|)?;
+        if !self.is_pass_file_exists_in_source() {
+            if let Some(pass) = &self.pass_content {
+                let serialized = serde_json::to_string_pretty(&pass)
+                    .map_err(|_| PassCreateError::CantSerializePass)?;
+
+                let pass_file_path = dir.join("pass.json");
+                fs::write(pass_file_path, serialized)
+                    .map_err(|err| PassCreateError::CantWritePassFile(err.to_string()))?;
+            }
         }
         Ok(())
     }

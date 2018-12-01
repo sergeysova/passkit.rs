@@ -150,7 +150,7 @@ dependencies = [
 
 [[package]]
 name = "passkit"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "fs_extra 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.10.15 (registry+https://github.com/rust-lang/crates.io-index)",

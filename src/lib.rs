@@ -81,6 +81,7 @@ impl PassSource {
         }
     }
 
+    /// Add exists pass to source
     pub fn add_pass(&mut self, pass: Pass) -> &mut Self {
         self.pass_content = Some(pass);
         self
@@ -89,8 +90,10 @@ impl PassSource {
     /// Create .pkpass file in target directory
     pub fn build_pkpass(&mut self) -> PassResult<()> {
         self.resolve_pass_content()?;
-        self.copy_source_files_to_temp_dir()?;
-        self.calculate_hashes_for_manifest()?;
+        let tmp = Self::create_tmp_dir()?;
+
+        self.copy_source_files_to(tmp.path())?;
+        self.calculate_hashes_of(tmp.path())?;
         Ok(())
     }
 
@@ -121,33 +124,21 @@ impl PassSource {
         path.into_boxed_path()
     }
 
-    fn copy_source_files_to_temp_dir(&mut self) -> PassResult<()> {
+    fn create_tmp_dir() -> PassResult<TempDir> {
+        TempDir::new("passsource").map_err(|_| PassCreateError::CantCreateTempDir)
+    }
+
+    fn copy_source_files_to(&mut self, dir: &path::Path) -> PassResult<()> {
         use fs_extra::dir::{copy, CopyOptions};
 
-        self.create_temp_dir()?;
-
-        if let Some(ref tmp_dir) = self.temp_dir {
-            copy(&self.source_directory, tmp_dir, &CopyOptions::new())
-                .map_err(|_| PassCreateError::CantCopySourceToTemp)?;
-        }
+        copy(&self.source_directory, dir, &CopyOptions::new())
+            .map_err(|_| PassCreateError::CantCopySourceToTemp)?;
 
         Ok(())
     }
 
-    fn create_temp_dir(&mut self) -> PassResult<()> {
-        let tmp = TempDir::new("passsource").map_err(|_| PassCreateError::CantCreateTempDir)?;
-        self.temp_dir = Some(tmp);
-        Ok(())
-    }
-
-    fn temp_dir_path(&self) -> &path::Path {
-        let dir = self.temp_dir.unwrap();
-        dir.path()
-    }
-
-    fn calculate_hashes_for_manifest(&self) -> PassResult<()> {
+    fn calculate_hashes_of(&self, dir: &path::Path) -> PassResult<Manifest> {
         let mut manifest = Manifest::new();
-        let dir = self.temp_dir.ok_or(PassCreateError::CantReadTempDir)?.path();
         let list = fs::read_dir(&dir).map_err(|_| PassCreateError::CantReadTempDir)?;
 
         for entry in list {
@@ -161,7 +152,7 @@ impl PassSource {
             manifest.insert(file_name, hash);
         }
 
-        Ok(())
+        Ok(manifest)
     }
 }
 
